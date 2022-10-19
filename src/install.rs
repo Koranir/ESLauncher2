@@ -71,7 +71,7 @@ pub fn install(
         fs::rename(&archive_file, &executable_path)?;
     } else if cfg!(target_os = "macos") && archive_file.to_string_lossy().contains("dmg") {
         send_progress_message(&name, "Processing DMG file".into());
-        if let Err(e) = mac_process_dmg(&archive_file) {
+        if let Err(e) = mac_process_dmg(&archive_file, &executable_path) {
             return Err(anyhow!("Mac DMG postprocessing failed! {}", e));
         }
     } else {
@@ -189,7 +189,7 @@ fn chmod_x(file: &PathBuf) {
     }
 }
 
-fn mac_process_dmg(archive_path: &PathBuf) -> Result<()> {
+fn mac_process_dmg(archive_path: &PathBuf, executable_path: &PathBuf) -> Result<()> {
     // Mount the disk image file
     let attach_info = dmg::Attach::new(archive_path)
         .attach()
@@ -230,5 +230,13 @@ fn mac_process_dmg(archive_path: &PathBuf) -> Result<()> {
     if let Err(e) = fs::remove_file(archive_path) {
         error!("Deletion of archive file failed! {}", e);
     }
+
+    let mut without_spaces = executable_path.clone();
+    without_spaces.pop();
+    without_spaces.push("EndlessSky");
+    if without_spaces.as_path().exists() {
+        fs::rename(without_spaces, executable_path)?;
+    }
+
     Ok(())
 }
